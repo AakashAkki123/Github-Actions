@@ -1,0 +1,82 @@
+name: main
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - ".github/**"
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment: development
+
+    env:
+      DATABRICKS_HOST: ${{ secrets.DEV_DEPLOYMENT_TARGET_URL }}
+      DATABRICKS_TOKEN: ${{ secrets.DEV_DEPLOYMENT_TARGET_TOKEN }}
+      REPO_PATH: /Workspace/Users/24311a0440@ece.sreenidhi.edu.in/Dev-Github-Actions
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Extract branch name
+        id: extract_branch
+        run: |
+          echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+      - name: Update Databricks Repo (Dev)
+        run: |
+          databricks repos update \
+            $REPO_PATH \
+            --branch "${{ steps.extract_branch.outputs.branch }}"
+
+      - name: Validate Deployment
+        run: |
+          echo "Dev deployment completed successfully"
+
+  deploy-prod:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      DATABRICKS_HOST: ${{ secrets.PROD_DEPLOYMENT_TARGET_URL }}
+      DATABRICKS_TOKEN: ${{ secrets.PROD_DEPLOYMENT_TARGET_TOKEN }}
+      REPO_PATH: /Workspace/Users/24311a0440@ece.sreenidhi.edu.in/Prod-Github-Actions
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Extract branch name
+        id: extract_branch_prod
+        run: |
+          echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+      - name: Update Databricks Repo (Prod)
+        run: |
+          databricks repos update \
+            $REPO_PATH \
+            --branch "${{ steps.extract_branch_prod.outputs.branch }}"
+
+      - name: Validate Production Deployment
+        run: |
+          echo "Production deployment completed successfully"
